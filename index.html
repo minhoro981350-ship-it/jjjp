@@ -8,8 +8,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:sans-serif;background:#f4f7f6;color:#333;margin:0;padding:10px}
 h1{font-size:1.2rem;text-align:center;color:#2c3e50;margin:5px 0 12px}
-.tab-nav{display:flex;gap:4px;margin-bottom:10px}
-.tab-nav button{flex:1;padding:11px 2px;background:#4A90E2;color:#fff;font-weight:bold;font-size:.82rem;border:none;border-radius:6px;cursor:pointer;line-height:1.2}
+.tab-nav{display:flex;gap:3px;margin-bottom:10px}
+.tab-nav button{flex:1;padding:10px 1px;background:#4A90E2;color:#fff;font-weight:bold;font-size:.76rem;border:none;border-radius:6px;cursor:pointer;line-height:1.2;word-break:keep-all}
 .tab-nav button.active{background:#2C3E50}
 .tab-content{display:none;background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
 .tab-content.active{display:block}
@@ -23,7 +23,7 @@ h1{font-size:1.2rem;text-align:center;color:#2c3e50;margin:5px 0 12px}
 .filter-box{background:#f8f9fa;padding:8px 10px;border-radius:6px;border:1px solid #ddd;margin-bottom:10px;font-size:.85rem;font-weight:bold;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
 select.mode-select{padding:5px 8px;border-radius:5px;border:1px solid #ccc;font-size:.82rem;font-weight:bold;color:#2c3e50;background:#fff}
 .mode-switch{display:flex;gap:5px;margin-bottom:8px;background:#eef2f5;padding:4px;border-radius:8px}
-.mode-switch button{flex:1;padding:8px;border:none;border-radius:6px;font-weight:bold;font-size:.83rem;background:transparent;color:#555;cursor:pointer}
+.mode-switch button{flex:1;padding:8px;border:none;border-radius:6px;font-weight:bold;font-size:.82rem;background:transparent;color:#555;cursor:pointer}
 .mode-switch button.active{background:#fff;color:#2c3e50;box-shadow:0 1px 3px rgba(0,0,0,.15)}
 .mode-switch.script-switch{background:#fce4ec}
 .mode-switch.script-switch button.active{color:#d81b60}
@@ -44,6 +44,7 @@ canvas{border:2px dashed #ff69b4;background:#fff;border-radius:8px;touch-action:
 <h1>📚 일본어 시험 단어장</h1>
 <div class="tab-nav">
   <button id="btn-t1" class="active" onclick="goTab('t1')">📖 단어</button>
+  <button id="btn-t5" onclick="goTab('t5')">🎯 어휘퀴즈</button>
   <button id="btn-t2" onclick="goTab('t2')">🧠 개념연습</button>
   <button id="btn-t3" onclick="goTab('t3')">✍️ 활용퀴즈</button>
   <button id="btn-t4" onclick="goTab('t4')">📝 쓰기</button>
@@ -55,6 +56,29 @@ canvas{border:2px dashed #ff69b4;background:#fff;border-radius:8px;touch-action:
     <span style="font-size:.8rem;color:#666">(총 <b id="wordCount">0</b>개)</span>
   </div>
   <div id="wordList"></div>
+</div>
+
+<div id="t5" class="tab-content">
+  <div class="mode-switch">
+    <button id="vType-mean" class="active" onclick="setVocabType('mean')">🇰🇷 동사 뜻 맞추기</button>
+    <button id="vType-match" onclick="setVocabType('match')">🔗 한자↔히라가나</button>
+  </div>
+  <div id="vMeanScriptBox" class="mode-switch script-switch">
+    <button id="vScript-kanji" class="active" onclick="setVocabScript('kanji')">🈳 한자 제시</button>
+    <button id="vScript-hira" onclick="setVocabScript('hira')">🔤 히라가나 제시</button>
+  </div>
+  <div id="vMatchDirBox" class="mode-switch script-switch" style="display:none">
+    <button id="vDir-k2h" class="active" onclick="setVocabDir('k2h')">🈳 한자 ➔ 히라가나</button>
+    <button id="vDir-h2k" onclick="setVocabDir('h2k')">🔤 히라가나 ➔ 한자</button>
+  </div>
+  <div class="filter-box">
+    <span><input type="checkbox" id="vocabStarOnly" onchange="nextVocab()"> <label for="vocabStarOnly">⭐ 별표 단어만 출제</label></span>
+  </div>
+  <div id="vocabBadge" class="quiz-badge"></div>
+  <div id="vocabQ" class="quiz-prompt"></div>
+  <div id="vocabOpts"></div>
+  <div id="vocabFeedback" class="feedback-box"></div>
+  <button class="btn btn-next" onclick="nextVocab()">다음 어휘 문제 ➔</button>
 </div>
 
 <div id="t2" class="tab-content">
@@ -226,6 +250,7 @@ try{const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');words=defaultWor
 function saveStars(){try{const m={};words.forEach(w=>{if(w.starred)m[w.id]=true;});localStorage.setItem(STORAGE_KEY,JSON.stringify(m));}catch(e){}}
 
 let curConcept=null,curQuiz=null,curQuizForm='te',quizScriptMode='hira',curDict=null,cv,ctx,drawing=false;
+let curVocab=null,vocabType='mean',vocabScript='kanji',vocabDir='k2h';
 const $=id=>document.getElementById(id);
 
 function goTab(id){
@@ -242,6 +267,77 @@ function renderWordList(){
 }
 function toggleStar(id){const w=words.find(x=>x.id===id);if(w){w.starred=!w.starred;saveStars();renderWordList();}}
 
+/* --- 어휘 퀴즈 (뜻 맞추기 / 한자↔히라가나 연결하기) --- */
+function setVocabType(t){
+  vocabType=t;
+  $('vType-mean').classList.toggle('active',t==='mean');
+  $('vType-match').classList.toggle('active',t==='match');
+  $('vMeanScriptBox').style.display=t==='mean'?'flex':'none';
+  $('vMatchDirBox').style.display=t==='match'?'flex':'none';
+  nextVocab();
+}
+function setVocabScript(s){
+  vocabScript=s;
+  $('vScript-kanji').classList.toggle('active',s==='kanji');
+  $('vScript-hira').classList.toggle('active',s==='hira');
+  nextVocab();
+}
+function setVocabDir(d){
+  vocabDir=d;
+  $('vDir-k2h').classList.toggle('active',d==='k2h');
+  $('vDir-h2k').classList.toggle('active',d==='h2k');
+  nextVocab();
+}
+function nextVocab(){
+  const starOnly=$('vocabStarOnly').checked;
+  let pool=starOnly?words.filter(w=>w.starred):words;
+  if(!pool.length){alert('⭐ 마크 표시한 단어가 없습니다!');$('vocabStarOnly').checked=false;nextVocab();return;}
+
+  if(vocabType==='match'){
+    const kPool=pool.filter(w=>w.kanji!==w.hira);
+    if(!kPool.length){
+      alert('별표 단어 중 한자 표기가 따로 있는 단어가 없어 전체 단어로 전환합니다.');
+      $('vocabStarOnly').checked=false;nextVocab();return;
+    }
+    pool=kPool;
+  }
+
+  curVocab=pool[Math.floor(Math.random()*pool.length)];
+  $('vocabFeedback').style.display='none';
+  const opts=$('vocabOpts');opts.innerHTML='';
+
+  if(vocabType==='mean'){
+    const isK=vocabScript==='kanji';
+    $('vocabBadge').innerText=`[${isK?'한자':'히라가나'}] 동사 뜻 맞추기`;
+    $('vocabQ').innerText=`「${isK?curVocab.kanji:curVocab.hira}」\n👉 이 동사의 알맞은 뜻은?`;
+    const target=curVocab.mean;
+    const fakes=[...new Set(words.filter(w=>w.mean!==target).map(w=>w.mean))].sort(()=>Math.random()-.5).slice(0,3);
+    [target,...fakes].sort(()=>Math.random()-.5).forEach(c=>{
+      const b=document.createElement('button');b.className='btn';b.style.margin='4px 0';b.innerText=c;
+      b.onclick=()=>showVocabResult(c===target,target);opts.appendChild(b);
+    });
+  }else{
+    const isK2H=vocabDir==='k2h';
+    $('vocabBadge').innerText=isK2H?'한자 ➔ 히라가나 읽기 연결':'히라가나 ➔ 한자 표기 연결';
+    $('vocabQ').innerText=isK2H
+      ?`「${curVocab.kanji}」\n👉 이 한자 동사의 올바른 히라가나 읽기는?`
+      :`「${curVocab.hira}」\n👉 이 히라가나 동사의 올바른 한자 표기는?`;
+    const target=isK2H?curVocab.hira:curVocab.kanji;
+    const field=isK2H?'hira':'kanji';
+    const kWords=words.filter(w=>w.kanji!==w.hira && w[field]!==target);
+    const fakes=[...new Set(kWords.map(w=>w[field]))].sort(()=>Math.random()-.5).slice(0,3);
+    [target,...fakes].sort(()=>Math.random()-.5).forEach(c=>{
+      const b=document.createElement('button');b.className='btn';b.style.margin='4px 0';b.innerText=c;
+      b.onclick=()=>showVocabResult(c===target,target);opts.appendChild(b);
+    });
+  }
+}
+function showVocabResult(ok,ans){
+  const fb=$('vocabFeedback');fb.style.display='block';fb.className='feedback-box '+(ok?'feedback-ok':'feedback-no');
+  fb.innerHTML=(ok?`⭕ 정답입니다! 「${ans}」`:`❌ 오답! 정답은 「${ans}」`)+`<br><span style="font-weight:normal;font-size:.85rem">${curVocab.kanji} (${curVocab.hira}) - ${curVocab.mean} [${curVocab.group}]</span>`;
+}
+
+/* --- 개념 연습 --- */
 function setConceptMode(m){
   $('cMode-choice').classList.toggle('active',m==='choice');$('cMode-type').classList.toggle('active',m==='type');
   $('conceptChoiceBox').style.display=m==='choice'?'block':'none';$('conceptTypeBox').style.display=m==='type'?'block':'none';
@@ -268,6 +364,7 @@ function showConceptResult(ok){
   fb.innerHTML=(ok?'⭕ 정답입니다!':`❌ 오답! 정답: ${curConcept.ans}`)+`<br><span style="font-weight:normal;font-size:.85rem">${curConcept.desc}</span>`;
 }
 
+/* --- 활용 퀴즈 --- */
 function setQuizScriptMode(s){
   quizScriptMode=s;$('qScript-hira').classList.toggle('active',s==='hira');$('qScript-kanji').classList.toggle('active',s==='kanji');
   $('quizTypingHint').innerText=s==='hira'?'히라가나로 활용형을 직접 입력하세요.':'한자 표기(또는 히라가나)로 활용형을 직접 입력하세요.';
@@ -318,6 +415,7 @@ function showQuizResult(ok){
   fb.innerHTML=(ok?`⭕ 정답입니다! 「${disp}」`:`❌ 오답! 정답은 「${disp}」`)+`<br><span style="font-weight:normal;font-size:.84rem">[${curQuiz.group}] て형: ${curQuiz.te} / ない형: ${curQuiz.nai}</span>`;
 }
 
+/* --- 쓰기 --- */
 function clearBoard(){if(ctx)ctx.clearRect(0,0,cv.width,cv.height);$('ansText').style.display='none';}
 function showAnswer(){const a=$('ansText');a.style.display=a.style.display==='none'?'block':'none';}
 function nextDict(){
@@ -340,7 +438,7 @@ function initApp(){
     cv.addEventListener('mousemove',e=>{if(!drawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
     cv.addEventListener('mouseup',()=>drawing=false);
   }
-  nextConcept();nextQuiz();nextDict();
+  nextVocab();nextConcept();nextQuiz();nextDict();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initApp);else initApp();
 </script>
