@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>일본어 시험 마스터</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:sans-serif;background:#f4f7f6;color:#333;margin:0;padding:10px}
+h1{font-size:1.2rem;text-align:center;color:#2c3e50;margin:5px 0 12px}
+.tab-nav{display:flex;gap:4px;margin-bottom:10px}
+.tab-nav button{flex:1;padding:11px 2px;background:#4A90E2;color:#fff;font-weight:bold;font-size:.82rem;border:none;border-radius:6px;cursor:pointer;line-height:1.2}
+.tab-nav button.active{background:#2C3E50}
+.tab-content{display:none;background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.tab-content.active{display:block}
+.card{border:1px solid #e0e0e0;padding:10px;border-radius:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.group-tag{background:#e1f5fe;color:#0288d1;padding:2px 5px;border-radius:4px;font-size:.75rem;font-weight:bold}
+.group-tag.exc{background:#ffebee;color:#c62828}
+.conj-row{font-size:.82rem;color:#555;margin-top:5px;background:#f8f9fa;padding:5px 8px;border-radius:4px;line-height:1.45}
+.conj-row b{color:#2c3e50}
+.star-btn{background:none;border:none;font-size:1.5rem;color:#ccc;cursor:pointer;padding:0 5px}
+.star-btn.starred{color:#f1c40f}
+.filter-box{background:#f8f9fa;padding:8px 10px;border-radius:6px;border:1px solid #ddd;margin-bottom:10px;font-size:.85rem;font-weight:bold;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+select.mode-select{padding:5px 8px;border-radius:5px;border:1px solid #ccc;font-size:.82rem;font-weight:bold;color:#2c3e50;background:#fff}
+.mode-switch{display:flex;gap:5px;margin-bottom:8px;background:#eef2f5;padding:4px;border-radius:8px}
+.mode-switch button{flex:1;padding:8px;border:none;border-radius:6px;font-weight:bold;font-size:.83rem;background:transparent;color:#555;cursor:pointer}
+.mode-switch button.active{background:#fff;color:#2c3e50;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.mode-switch.script-switch{background:#fce4ec}
+.mode-switch.script-switch button.active{color:#d81b60}
+.canvas-container{width:100%;display:flex;justify-content:center;margin:10px 0}
+canvas{border:2px dashed #ff69b4;background:#fff;border-radius:8px;touch-action:none}
+.btn{width:100%;padding:12px;border:none;border-radius:6px;background:#4A90E2;color:#fff;font-weight:bold;font-size:1rem;margin-top:8px;cursor:pointer}
+.btn-sub{background:#7f8c8d}.btn-ans{background:#27ae60}.btn-next{background:#34495e;margin-top:14px}
+.quiz-badge{display:inline-block;background:#2c3e50;color:#fff;font-size:.78rem;padding:3px 8px;border-radius:12px;margin-bottom:8px}
+.quiz-prompt{font-size:1.18rem;font-weight:bold;margin-bottom:12px;color:#2c3e50;line-height:1.45;white-space:pre-line}
+.hint-text{font-size:.82rem;color:#666;margin-bottom:8px}
+.typing-input{width:100%;padding:12px;font-size:1.1rem;border:2px solid #4A90E2;border-radius:6px;text-align:center;font-weight:bold;outline:none}
+.feedback-box{margin-top:10px;padding:10px;border-radius:6px;font-weight:bold;text-align:center;font-size:.95rem;line-height:1.45;display:none}
+.feedback-ok{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+.feedback-no{background:#ffebee;color:#c62828;border:1px solid #ef9a9a}
+</style>
+</head>
+<body>
+<h1>📚 일본어 시험 단어장</h1>
+<div class="tab-nav">
+  <button id="btn-t1" class="active" onclick="goTab('t1')">📖 단어</button>
+  <button id="btn-t2" onclick="goTab('t2')">🧠 개념연습</button>
+  <button id="btn-t3" onclick="goTab('t3')">✍️ 활용퀴즈</button>
+  <button id="btn-t4" onclick="goTab('t4')">📝 쓰기</button>
+</div>
+
+<div id="t1" class="tab-content active">
+  <div class="filter-box">
+    <span><input type="checkbox" id="starOnly" onchange="renderWordList()"> <label for="starOnly">⭐ 헷갈리는 단어만 보기</label></span>
+    <span style="font-size:.8rem;color:#666">(총 <b id="wordCount">0</b>개)</span>
+  </div>
+  <div id="wordList"></div>
+</div>
+
+<div id="t2" class="tab-content">
+  <div class="mode-switch">
+    <button id="cMode-choice" class="active" onclick="setConceptMode('choice')">🔘 4지선다 고르기</button>
+    <button id="cMode-type" onclick="setConceptMode('type')">⌨️ 직접 타자 입력</button>
+  </div>
+  <div class="filter-box">
+    <span>연습 범위:</span>
+    <select id="conceptFilter" class="mode-select" onchange="nextConcept()">
+      <option value="all">전체 문법 규칙 (て·ない)</option>
+      <option value="te">て형 변환 규칙만</option>
+      <option value="nai">ない형 변환 규칙만</option>
+    </select>
+  </div>
+  <div id="conceptBadge" class="quiz-badge"></div>
+  <div id="conceptQ" class="quiz-prompt"></div>
+  <div id="conceptChoiceBox"></div>
+  <div id="conceptTypeBox" style="display:none">
+    <div class="hint-text">일본어 키보드로 정답 어미나 형태를 입력하세요 (예: って, かない)</div>
+    <input type="text" id="conceptInput" class="typing-input" placeholder="여기에 입력..." onkeydown="if(event.key==='Enter')checkConceptTyping()">
+    <button class="btn btn-ans" onclick="checkConceptTyping()">정답 확인</button>
+  </div>
+  <div id="conceptFeedback" class="feedback-box"></div>
+  <button class="btn btn-next" onclick="nextConcept()">다음 개념 문제 ➔</button>
+</div>
+
+<div id="t3" class="tab-content">
+  <div class="mode-switch script-switch">
+    <button id="qScript-hira" class="active" onclick="setQuizScriptMode('hira')">🔤 히라가나 버전</button>
+    <button id="qScript-kanji" onclick="setQuizScriptMode('kanji')">🈳 한자 버전</button>
+  </div>
+  <div class="mode-switch">
+    <button id="qMode-choice" class="active" onclick="setQuizInputMode('choice')">🔘 4지선다 고르기</button>
+    <button id="qMode-type" onclick="setQuizInputMode('type')">⌨️ 직접 타자 입력</button>
+  </div>
+  <div class="filter-box">
+    <span><input type="checkbox" id="quizStarOnly" onchange="nextQuiz()"> <label for="quizStarOnly">⭐ 별표만</label></span>
+    <select id="quizFormFilter" class="mode-select" onchange="nextQuiz()">
+      <option value="all">🎲 て형 · ない형 랜덤</option>
+      <option value="te">て형 (테형) 집중</option>
+      <option value="nai">ない형 (나이형) 집중</option>
+    </select>
+  </div>
+  <div id="quizBadge" class="quiz-badge"></div>
+  <div id="quizQ" class="quiz-prompt"></div>
+  <div id="quizOpts"></div>
+  <div id="quizTypeBox" style="display:none">
+    <div id="quizTypingHint" class="hint-text">히라가나로 활용형을 직접 입력하세요.</div>
+    <input type="text" id="quizInput" class="typing-input" placeholder="활용형을 직접 입력하세요..." onkeydown="if(event.key==='Enter')checkQuizTyping()">
+    <button class="btn btn-ans" onclick="checkQuizTyping()">정답 확인</button>
+  </div>
+  <div id="quizFeedback" class="feedback-box"></div>
+  <button class="btn btn-next" onclick="nextQuiz()">다음 동사 문제 ➔</button>
+</div>
+
+<div id="t4" class="tab-content">
+  <div class="filter-box">
+    <span><input type="checkbox" id="dictStarOnly" onchange="nextDict()"> <label for="dictStarOnly">⭐ 헷갈리는 단어만 출제</label></span>
+  </div>
+  <div id="qMeaning" style="font-size:1.2rem;font-weight:bold;text-align:center;margin-bottom:5px"></div>
+  <div class="canvas-container"><canvas id="paint" width="260" height="260"></canvas></div>
+  <button class="btn btn-sub" onclick="clearBoard()">지우기</button>
+  <button class="btn btn-ans" onclick="showAnswer()">정답 확인</button>
+  <div id="ansText" style="display:none;text-align:center;font-size:1.05rem;font-weight:bold;margin-top:10px;color:#2c3e50;line-height:1.5"></div>
+  <button class="btn btn-next" onclick="nextDict()">다음 문제 ➔</button>
+</div>
+
+<script>
+const raw=`1|言う|いう|말하다(일상적)|1류|言って|いって|言わない|いわない
+2|歌う|うたう|노래하다|1류|歌って|うたって|歌わない|うたわない
+3|使う|つかう|사용하다|1류|使って|つかって|使わない|つかわない
+4|笑う|わらう|웃다|1류|笑って|わらって|笑わない|わらわない
+5|合う|あう|만나다|1류|合って|あって|合わない|あわない
+6|付き合う|つきあう|동행하다|1류|付き合って|つきあって|付き合わない|つきあわない
+7|似合う|にあう|어울리다|1류|似合って|にあって|似合わない|にあわない
+8|もらう|もらう|받다(친근)|1류|もらって|もらって|もらわない|もらわない
+9|払う|はらう|계산하다|1류|払って|はらって|払わない|はらわない
+10|しまう|しまう|끝내다|1류|しまって|しまって|しまわない|しまわない
+11|書く|かく|쓰다|1류|書いて|かいて|書かない|かかない
+12|聞く|きく|듣다|1류|聞いて|きいて|聞かない|きかない
+13|行く|いく|가다|1류|行って|いって|行かない|いかない
+14|咲く|さく|피다|1류|咲いて|さいて|咲かない|さかない
+15|いただく|いただく|받다(정중)|1류|いただいて|いただいて|いただかない|いただかない
+16|泳ぐ|およぐ|수영하다|1류|泳いで|およいで|泳がない|およがない
+17|話す|はなす|이야기하다(공식적)|1류|話して|はなして|話さない|はなさない
+18|押す|おす|밀다, 누르다|1류|押して|おして|押さない|おさない
+19|こぼす|こぼす|흘리다|1류|こぼして|こぼして|こぼさない|こぼさない
+20|待つ|まつ|기다리다|1류|待って|まって|待たない|またない
+21|持つ|もつ|들다|1류|持って|もって|持たない|もたない
+22|死ぬ|しぬ|죽다|1류|死んで|しんで|死なない|しなない
+23|遊ぶ|あそぶ|놀다|1류|遊んで|あそんで|遊ばない|あそばない
+24|飛ぶ|とぶ|날다|1류|飛んで|とんで|飛ばない|とばない
+25|読む|よむ|읽다|1류|読んで|よんで|読まない|よまない
+26|飲む|のむ|마시다|1류|飲んで|のんで|飲まない|のまない
+27|休む|やすむ|쉬다|1류|休んで|やすんで|休まない|やすまない
+28|込む|こむ|혼잡하다|1류|込んで|こんで|込まない|こまない
+29|楽しむ|たのしむ|즐기다|1류|楽しんで|たのしんで|楽しまない|たのしまない
+30|なる|なる|되다|1류|なって|なって|ならない|ならない
+31|乗る|のる|타다|1류|乗って|のって|乗らない|のらない
+32|作る|つくる|만들다|1류|作って|つくって|作らない|つくらない
+33|売る|うる|팔다|1류|売って|うって|売らない|うらない
+34|取る|とる|집다|1류|取って|とって|取らない|とらない
+35|守る|まもる|지키다|1류|守って|まもって|守らない|まもらない
+36|分かる|わかる|알다|1류|分かって|わかって|分からない|わからない
+37|上がる|あがる|오르다|1류|上がって|あがって|上がらない|あがらない
+38|掛る|かかる|걸리다|1류|掛って|かかって|掛らない|かからない
+39|頑張る|がんばる|노력하다|1류|頑張って|がんばって|頑張らない|がんばらない
+40|ある|ある|있다|1류|あって|あって|ない|ない
+41|止まる|とまる|멈추다|1류|止まって|とまって|止まらない|とまらない
+42|降る|ふる|내리다(눈,비)|1류|降って|ふって|降らない|ふらない
+43|戻る|もどる|되돌아오다|1류|戻って|もどって|戻らない|もどらない
+44|踊る|おどる|춤추다|1류|踊って|おどって|踊らない|おどらない
+45|残る|のこる|남다|1류|残って|のこって|残らない|のこらない
+46|起こる|おこる|발생하다|1류|起こって|おこって|起こらない|おこらない
+47|知る|しる|알다|1류(예외)|知って|しって|知らない|しらない
+48|入る|はいる|들어가다|1류(예외)|入って|はいって|入らない|はいらない
+49|切る|きる|자르다|1류(예외)|切って|きって|切らない|きらない
+50|帰る|かえる|돌아가다|1류(예외)|帰って|かえって|帰らない|かえらない
+51|走る|はしる|달리다|1류(예외)|走って|はしって|走らない|はしらない
+52|要る|いる|필요하다|1류(예외)|要って|いって|要らない|いらない
+53|着る|きる|입다|2류|着て|きて|着ない|きない
+54|見る|みる|보다|2류|見て|みて|見ない|みない
+55|起きる|おきる|일어나다|2류|起きて|おきて|起きない|おきない
+56|降りる|おりる|내리다(대중교통)|2류|降りて|おりて|降りない|おりない
+57|いる|いる|있다|2류|いて|いて|いない|いない
+58|落ちる|おちる|떨어지다|2류|落ちて|おちて|落ちない|おちない
+59|できる|できる|할 수 있다|2류|できて|できて|できない|できない
+60|食べる|たべる|먹다|2류|食べて|たべて|食べない|たべない
+61|教える|おしえる|가르치다|2류|教えて|おしえて|教えない|おしえない
+62|出る|でる|나가다|2류|出て|でて|出ない|でない
+63|つける|つける|켜다|2류|つけて|つけて|つけない|つけない
+64|開ける|あける|열다|2류|開けて|あけて|開けない|あけない
+65|覚える|おぼえる|기억하다|2류|覚えて|おぼえて|覚えない|おぼえない
+66|見える|みえる|보이다|2류|見えて|みえて|見えない|みえない
+67|聞こえる|きこえる|들리다|2류|聞こえて|きこえて|聞こえない|きこえない
+68|晴れる|はれる|맑다|2류|晴れて|はれて|晴れない|はれない
+69|壊れる|こわれる|망가지다|2류|壊れて|こわれて|壊れない|こわれない
+70|濡れる|ぬれる|젖다|2류|濡れて|ぬれて|濡れない|ぬれない
+71|忘れる|わすれる|잊다|2류|忘れて|わすれて|忘れない|わすれない
+72|しゃべる|しゃべる|재잘거리다|2류|しゃべて|しゃべて|しゃべない|しゃべない
+73|くれる|くれる|주다|2류|くれて|くれて|くれない|くれない
+74|来る|くる|오다|3류|来て|きて|来ない|こない
+75|する|する|하다|3류|して|して|しない|しない`;
+
+const defaultWords=raw.split('\n').map(l=>{const r=l.split('|');return{id:+r[0],kanji:r[1],hira:r[2],mean:r[3],group:r[4],te:r[5],teH:r[6],nai:r[7],naiH:r[8],starred:false};});
+
+const conceptRules=[
+  {cat:'te',badge:'て형 규칙 (1류)',q:'어미가「う・つ・る」로 끝나는 1류 동사의 て형 변화는?',ans:'って',fakes:['いて','んで','して'],desc:'う・つ・る ➔ って (촉음편: 言う→言って, 待つ→待って, 乗る→乗って)'},
+  {cat:'te',badge:'て형 규칙 (1류)',q:'어미가「む・ぶ・ぬ」로 끝나는 1류 동사의 て형 변화는?',ans:'んで',fakes:['って','いて','いで'],desc:'む・ぶ・ぬ ➔ んで (발음편: 飲む→飲んで, 遊ぶ→遊んで, 死ぬ→死んで)'},
+  {cat:'te',badge:'て형 규칙 (1류)',q:'어미가「く」로 끝나는 1류 동사(行く 제외)의 て형 변화는?',ans:'いて',fakes:['いで','って','して'],desc:'く ➔ いて (이음편: 書く→書いて, 聞く→聞いて)'},
+  {cat:'te',badge:'て형 규칙 (1류)',q:'어미가「ぐ」로 끝나는 1류 동사의 て형 변화는?',ans:'いで',fakes:['いて','んで','って'],desc:'ぐ ➔ いで (탁음 유지: 泳ぐ→泳いで)'},
+  {cat:'te',badge:'て형 규칙 (1류)',q:'어미가「す」로 끝나는 1류 동사의 て형 변화는?',ans:'して',fakes:['って','いて','んで'],desc:'す ➔ して (話す→話して, 押す→押して)'},
+  {cat:'te',badge:'て형 예외 (1류)',q:'「行く(가다)」의 て형은 어미가 く이지만 예외로 무엇이 될까요?',ans:'行って',fakes:['行いて','行いで','行んで'],desc:'行く는 이음편(行いて)이 아니라 촉음편「行って(いって)」로 변합니다!'},
+  {cat:'te',badge:'て형 규칙 (2류)',q:'2류 동사의 て형 만드는 공식은?',ans:'る를 떼고 て',fakes:['る를 떼고 って','る를 り로 바꾸고 て','る를 떼고 んで'],desc:'2류 동사는 무조건 어미 る를 탈락시키고「て」를 붙입니다 (食べる→食べて)'},
+  {cat:'te',badge:'て형 규칙 (3류)',q:'3류 동사「来る(くる)」의 て형 발음과 표기는?',ans:'来て(きて)',fakes:['来て(くて)','来て(こて)','来って(きって)'],desc:'来る는 て형에서「来て(きて)」로 읽습니다.'},
+  {cat:'te',badge:'て형 규칙 (3류)',q:'3류 동사「する(하다)」의 て형은?',ans:'して',fakes:['すて','しって','しんで'],desc:'する ➔ して'},
+  {cat:'nai',badge:'ない형 규칙 (1류)',q:'1류 동사의 ない형 기본 만드는 법은? (う로 끝나는 동사 제외)',ans:'어미를 あ단으로 바꾸고 ない',fakes:['어미를 い단으로 바꾸고 ない','어미를 え단으로 바꾸고 ない','어미를 떼고 ない'],desc:'1류 동사는 う단 어미를 あ단으로 바꾼 뒤「ない」를 붙입니다 (書く→書かない)'},
+  {cat:'nai',badge:'ない형 주의 (1류)',q:'어미가「う」로 끝나는 1류 동사(言う, 買う 등)의 ない형 어미 변화는?',ans:'わない',fakes:['あない','いない','ったない'],desc:'う는 あ가 아니라「わ」로 바뀝니다! (言う→言わない, 使う→使わない)'},
+  {cat:'nai',badge:'ない형 예외 (1류)',q:'1류 동사「ある(있다)」의 ない형은 무엇일까요?',ans:'ない',fakes:['あらない','あわない','いない'],desc:'ある의 부정형은 あらない가 아니라 그냥「ない」입니다!'},
+  {cat:'nai',badge:'ない형 규칙 (2류)',q:'2류 동사의 ない형 만드는 공식은?',ans:'る를 떼고 ない',fakes:['る를 らない로 변경','る를 わない로 변경','る를 れない로 변경'],desc:'2류 동사는 る만 떼고「ない」를 붙입니다 (見る→見ない, 食べる→食べない)'},
+  {cat:'nai',badge:'ない형 규칙 (3류)',q:'3류 동사「来る(くる)」의 ない형 발음과 표기는?',ans:'来ない(こない)',fakes:['来ない(きない)','来ない(くない)','来らない(こらない)'],desc:'来る는 ない형에서「来ない(こない)」로 읽습니다!'},
+  {cat:'nai',badge:'ない형 규칙 (3류)',q:'3류 동사「する(하다)」의 ない형은?',ans:'しない',fakes:['すない','さない','せない'],desc:'する ➔ しない'}
+];
+
+const STORAGE_KEY='jp_quiz_v4_stars';
+let words=defaultWords;
+try{const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');words=defaultWords.map(w=>({...w,starred:!!s[w.id]}));}catch(e){}
+function saveStars(){try{const m={};words.forEach(w=>{if(w.starred)m[w.id]=true;});localStorage.setItem(STORAGE_KEY,JSON.stringify(m));}catch(e){}}
+
+let curConcept=null,curQuiz=null,curQuizForm='te',quizScriptMode='hira',curDict=null,cv,ctx,drawing=false;
+const $=id=>document.getElementById(id);
+
+function goTab(id){
+  document.querySelectorAll('.tab-content,.tab-nav button').forEach(e=>e.classList.remove('active'));
+  $(id).classList.add('active');$('btn-'+id).classList.add('active');
+}
+
+function renderWordList(){
+  const list=$('wordList'),starOnly=$('starOnly').checked;
+  const f=starOnly?words.filter(w=>w.starred):words;
+  $('wordCount').innerText=f.length;
+  if(!f.length){list.innerHTML='<div style="text-align:center;color:#888;padding:20px">⭐ 마크 표시된 단어가 없습니다.</div>';return;}
+  list.innerHTML=f.map(w=>`<div class="card"><div style="flex:1"><div><b>${w.kanji}</b> (${w.hira}) <span class="group-tag ${w.group.includes('예외')?'exc':''}">${w.group}</span> - ${w.mean}</div><div class="conj-row">て형: <b>${w.te}</b> (${w.teH}) · ない형: <b>${w.nai}</b> (${w.naiH})</div></div><button class="star-btn ${w.starred?'starred':''}" onclick="toggleStar(${w.id})">★</button></div>`).join('');
+}
+function toggleStar(id){const w=words.find(x=>x.id===id);if(w){w.starred=!w.starred;saveStars();renderWordList();}}
+
+function setConceptMode(m){
+  $('cMode-choice').classList.toggle('active',m==='choice');$('cMode-type').classList.toggle('active',m==='type');
+  $('conceptChoiceBox').style.display=m==='choice'?'block':'none';$('conceptTypeBox').style.display=m==='type'?'block':'none';
+  $('conceptFeedback').style.display='none';
+}
+function nextConcept(){
+  const f=$('conceptFilter').value,pool=f==='all'?conceptRules:conceptRules.filter(r=>r.cat===f);
+  curConcept=pool[Math.floor(Math.random()*pool.length)];
+  $('conceptBadge').innerText=curConcept.badge;$('conceptQ').innerText=curConcept.q;
+  $('conceptFeedback').style.display='none';$('conceptInput').value='';
+  const box=$('conceptChoiceBox');box.innerHTML='';
+  [curConcept.ans,...curConcept.fakes].sort(()=>Math.random()-.5).forEach(c=>{
+    const b=document.createElement('button');b.className='btn';b.style.margin='4px 0';b.innerText=c;
+    b.onclick=()=>showConceptResult(c===curConcept.ans);box.appendChild(b);
+  });
+}
+function checkConceptTyping(){
+  const v=$('conceptInput').value.trim().replace(/\s+/g,'');if(!v)return;
+  const c=curConcept.ans.replace(/\(.*?\)/g,'').replace(/\s+/g,'');
+  showConceptResult(v===curConcept.ans.replace(/\s+/g,'')||v===c);
+}
+function showConceptResult(ok){
+  const fb=$('conceptFeedback');fb.style.display='block';fb.className='feedback-box '+(ok?'feedback-ok':'feedback-no');
+  fb.innerHTML=(ok?'⭕ 정답입니다!':`❌ 오답! 정답: ${curConcept.ans}`)+`<br><span style="font-weight:normal;font-size:.85rem">${curConcept.desc}</span>`;
+}
+
+function setQuizScriptMode(s){
+  quizScriptMode=s;$('qScript-hira').classList.toggle('active',s==='hira');$('qScript-kanji').classList.toggle('active',s==='kanji');
+  $('quizTypingHint').innerText=s==='hira'?'히라가나로 활용형을 직접 입력하세요.':'한자 표기(또는 히라가나)로 활용형을 직접 입력하세요.';
+  renderCurrentQuiz();
+}
+function setQuizInputMode(m){
+  $('qMode-choice').classList.toggle('active',m==='choice');$('qMode-type').classList.toggle('active',m==='type');
+  $('quizOpts').style.display=m==='choice'?'block':'none';$('quizTypeBox').style.display=m==='type'?'block':'none';
+  $('quizFeedback').style.display='none';
+}
+function makeFakes(w,ft,isH){
+  const bw=isH?w.hira:w.kanji,st=bw.slice(0,-1),ans=isH?w[ft+'H']:w[ft],fk=new Set();
+  if(ft==='te')[st+'て',st+'って',st+'いて',st+'んで',st+'いで',st+'して'].forEach(x=>fk.add(x));
+  else{[st+'ない',st+'あない',st+'らない',st+'わない',st+'いない',bw+'ない'].forEach(x=>fk.add(x));if(w.hira==='ある')['あらない','あわない','いない'].forEach(x=>fk.add(x));}
+  fk.delete(ans);fk.delete(w[ft]);fk.delete(w[ft+'H']);
+  return Array.from(fk).slice(0,3);
+}
+function nextQuiz(){
+  const starOnly=$('quizStarOnly').checked,f=$('quizFormFilter').value;
+  const pool=starOnly?words.filter(w=>w.starred):words;
+  if(!pool.length){alert('⭐ 마크 표시한 단어가 없습니다!');$('quizStarOnly').checked=false;nextQuiz();return;}
+  curQuiz=pool[Math.floor(Math.random()*pool.length)];
+  curQuizForm=f==='all'?(Math.random()<.5?'te':'nai'):f;
+  renderCurrentQuiz();
+}
+function renderCurrentQuiz(){
+  if(!curQuiz)return;
+  const isH=quizScriptMode==='hira',names={te:'て형 (테형)',nai:'ない형 (나이형)'};
+  $('quizBadge').innerText=`[${isH?'히라가나':'한자'}] ${names[curQuizForm]} 맞추기`;
+  $('quizQ').innerText=`${isH?curQuiz.hira:curQuiz.kanji} - ${curQuiz.mean}\n👉 올바른 ${names[curQuizForm]}은?`;
+  $('quizFeedback').style.display='none';$('quizInput').value='';
+  const opts=$('quizOpts');opts.innerHTML='';
+  const target=isH?curQuiz[curQuizForm+'H']:curQuiz[curQuizForm];
+  [target,...makeFakes(curQuiz,curQuizForm,isH)].sort(()=>Math.random()-.5).forEach(c=>{
+    const b=document.createElement('button');b.className='btn';b.style.margin='4px 0';b.innerText=c;
+    b.onclick=()=>showQuizResult(c===target);opts.appendChild(b);
+  });
+}
+function checkQuizTyping(){
+  const v=$('quizInput').value.trim().replace(/\s+/g,'');if(!v)return;
+  const isH=quizScriptMode==='hira';
+  showQuizResult(isH?(v===curQuiz[curQuizForm+'H']):(v===curQuiz[curQuizForm]||v===curQuiz[curQuizForm+'H']));
+}
+function showQuizResult(ok){
+  const ans=curQuiz[curQuizForm],ansH=curQuiz[curQuizForm+'H'];
+  const disp=(quizScriptMode==='hira'||ans===ansH)?ansH:`${ans} (${ansH})`;
+  const fb=$('quizFeedback');fb.style.display='block';fb.className='feedback-box '+(ok?'feedback-ok':'feedback-no');
+  fb.innerHTML=(ok?`⭕ 정답입니다! 「${disp}」`:`❌ 오답! 정답은 「${disp}」`)+`<br><span style="font-weight:normal;font-size:.84rem">[${curQuiz.group}] て형: ${curQuiz.te} / ない형: ${curQuiz.nai}</span>`;
+}
+
+function clearBoard(){if(ctx)ctx.clearRect(0,0,cv.width,cv.height);$('ansText').style.display='none';}
+function showAnswer(){const a=$('ansText');a.style.display=a.style.display==='none'?'block':'none';}
+function nextDict(){
+  const starOnly=$('dictStarOnly').checked,pool=starOnly?words.filter(w=>w.starred):words;
+  if(!pool.length){alert('⭐ 마크 표시한 단어가 없습니다!');$('dictStarOnly').checked=false;nextDict();return;}
+  curDict=pool[Math.floor(Math.random()*pool.length)];
+  $('qMeaning').innerText=`뜻: ${curDict.mean}`;clearBoard();
+  $('ansText').innerHTML=`기본형: ${curDict.kanji} (${curDict.hira}) [${curDict.group}]<br><span style="font-size:.88rem;color:#555">て형: ${curDict.te} · ない형: ${curDict.nai}</span>`;
+}
+
+function initApp(){
+  renderWordList();cv=$('paint');
+  if(cv){
+    ctx=cv.getContext('2d');ctx.lineWidth=5;ctx.lineCap='round';ctx.strokeStyle='#ff1493';
+    const pos=e=>{const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};};
+    cv.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
+    cv.addEventListener('touchmove',e=>{e.preventDefault();if(!drawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();},{passive:false});
+    cv.addEventListener('touchend',()=>drawing=false);
+    cv.addEventListener('mousedown',e=>{drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+    cv.addEventListener('mousemove',e=>{if(!drawing)return;const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
+    cv.addEventListener('mouseup',()=>drawing=false);
+  }
+  nextConcept();nextQuiz();nextDict();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initApp);else initApp();
+</script>
+</body>
+</html>
